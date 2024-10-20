@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Monitoring Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #4ecca3;
+            margin-bottom: 30px;
+        }
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .model-card {
+            background-color: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .model-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .model-card.error {
+            background-color: #3d0000;
+            border: 2px solid #e74c3c;
+        }
+        .model-card.error .model-name {
+            color: #ff6b6b;
+        }
+        .model-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4ecca3;
+        }
+        .model-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            color: #a0a0a0;
+        }
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .status-success {
+            color: #4ecca3;
+        }
+        .status-error {
+            color: #e74c3c;
+        }
+        .error-list {
+            margin-top: 30px;
+            background-color: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .error-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2c3e50;
+            color: #e74c3c;  /* Make the text red */
+        }
+        .chart-container {
+            background-color: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .pagination-button {
+            background-color: #4ecca3;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 15px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .pagination-button:hover {
+            background-color: #45b393;
+        }
+
+        .pagination-button:disabled {
+            background-color: #2c3e50;
+            color: #a0a0a0;
+            cursor: not-allowed;
+        }
+
+        #pageInfo {
+            color: #a0a0a0;
+            font-size: 0.9em;
+        }
+
+        /* Add these new styles for the modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #16213e;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 800px;
+            border-radius: 10px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #4ecca3;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #2c3e50;
+        }
+
+        th {
+            background-color: #1a1a2e;
+            color: #4ecca3;
+        }
+
+        .status-success {
+            color: #4ecca3;
+        }
+
+        .status-error {
+            color: #e74c3c;
+        }
+
+        .modal-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .modal-content th, .modal-content td {
+            padding: 10px;
+            border: 1px solid #2c3e50;
+            text-align: left;
+        }
+
+        .modal-content th {
+            background-color: #1a1a2e;
+            color: #4ecca3;
+        }
+
+        .modal-content h3 {
+            margin-top: 20px;
+            color: #4ecca3;
+        }
+
+        .overall-stats {
+            background-color: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .overall-stat {
+            margin-bottom: 15px;
+        }
+
+        .alert {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .overall-stat-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .overall-stat-card .model-name {
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        .overall-stat-card .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ffffff; 
+        }
+
+        .alert {
+            grid-column: 1 / -1;
+            background-color: #3d0000;
+            color: #ff6b6b;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold; /* Make the text bold */
+            font-size: 1.1em; /* Increase font size slightly */
+            margin-bottom: 10px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>API Monitoring Dashboard</h1>
+        <div class="alert" id="overallAlert" style="display: none;">Alert: System performance is below optimal levels.</div>
+        <div class="model-grid">
+            <!-- Overall status cards -->
+            <div class="model-card overall-stat-card">
+                <div class="model-name">Uptime</div>
+                <div class="stat-value" id="overallUptime">100%</div>
+            </div>
+            <div class="model-card overall-stat-card">
+                <div class="model-name">Average Response Time</div>
+                <div class="stat-value" id="overallResponseTime">0s</div>
+            </div>
+            <div class="model-card overall-stat-card">
+                <div class="model-name">Error Rate</div>
+                <div class="stat-value" id="overallErrorRate">0%</div>
+            </div>
+
+            <!-- Existing API cards -->
+            {% for api_name, data in data.items() %}
+            <div class="model-card {% if data and data[:15]|selectattr('status', 'ne', 'Success')|list %}error{% endif %}" data-api="{{ api_name }}">
+                <div class="model-name">{{ api_name }}</div>
+                <div class="model-stats">
+                    <div class="stat">
+                        <div class="stat-label">Status</div>
+                        {% if data %}
+                        <div class="stat-value {% if data[0].status == 'Success' %}status-success{% else %}status-error{% endif %}">
+                            {{ data[0].status }}
+                        </div>
+                        {% else %}
+                        <div class="stat-value">No data</div>
+                        {% endif %}
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Avg Response Time</div>
+                        <div class="stat-value">{{ avg_response_times[api_name] }}s</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Last Check</div>
+                        {% if data %}
+                        <div class="stat-value">{{ data[0].timestamp.split()[1] }}</div>
+                        {% else %}
+                        <div class="stat-value">N/A</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        
+
+        <div class="error-list" id="errorListContainer" style="display: none;">
+            <h2>Recent Errors</h2>
+            <div id="errorContainer"></div>
+            <div class="pagination">
+                <button id="prevPage" class="pagination-button">&laquo; Previous</button>
+                <span id="pageInfo"></span>
+                <button id="nextPage" class="pagination-button">Next &raquo;</button>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>Response Time History</h2>
+            <div class="chart-wrapper">
+                <canvas id="responseTimeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-container" id="errorRateChartContainer" style="display: none;">
+            <h2>Error Rate History</h2>
+            <div class="chart-wrapper">
+                <canvas id="errorRateChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Add this modal HTML structure -->
+        <div id="modelModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="modalTitle"></h2>
+                <div id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Refresh the page every 30 seconds
+        setTimeout(function() {
+            location.reload();
+        }, 30000);
+
+        // Chart initialization
+        const apis = {{ apis | safe }};
+        const colors = ['#4ecca3', '#e74c3c', '#3498db', '#f39c12', '#9b59b6', '#1abc9c'];
+
+        function createChart(ctx, type, labels, datasets) {
+            return new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 0 // Disable all animations
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#e0e0e0',
+                                maxTicksLimit: 10 // Limit the number of x-axis labels
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#e0e0e0'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e0e0e0'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        fetch('/chart_data')
+            .then(response => response.json())
+            .then(data => {
+                const responseTimeCtx = document.getElementById('responseTimeChart').getContext('2d');
+                const errorRateCtx = document.getElementById('errorRateChart').getContext('2d');
+
+                const timestamps = data[apis[0]].timestamps;
+
+                const responseTimeDatasets = apis.map((api, index) => ({
+                    label: api,
+                    data: data[api].response_times,
+                    borderColor: colors[index % colors.length],
+                    fill: false
+                }));
+
+                createChart(responseTimeCtx, 'line', timestamps, responseTimeDatasets);
+                
+                const errorRateDatasets = apis.map((api, index) => ({
+                    label: api,
+                    data: data[api].error_rates,
+                    borderColor: colors[index % colors.length],
+                    fill: false
+                }));
+
+                // Check if there are any errors before creating and displaying the error rate chart
+                const hasErrors = errorRateDatasets.some(dataset => dataset.data.some(rate => rate > 0));
+                const errorRateChartContainer = document.getElementById('errorRateChartContainer');
+                
+                if (hasErrors) {
+                    errorRateChartContainer.style.display = 'block';
+                    createChart(errorRateCtx, 'line', timestamps, errorRateDatasets);
+                } else {
+                    errorRateChartContainer.style.display = 'none';
+                }
+            });
+
+        // Error filtering and pagination
+        const errorsPerPage = 10;
+        let currentPage = 0;
+        const errors = {{ errors|tojson }};
+        let filteredErrors = errors;
+        let activeModel = null;
+
+        function filterErrors(model) {
+            if (activeModel === model) {
+                filteredErrors = errors;
+                activeModel = null;
+                document.querySelectorAll('.model-card').forEach(card => card.classList.remove('active'));
+            } else {
+                filteredErrors = errors.filter(error => error.model === model);
+                activeModel = model;
+                document.querySelectorAll('.model-card').forEach(card => {
+                    if (card.dataset.model === model) {
+                        card.classList.add('active');
+                    } else {
+                        card.classList.remove('active');
+                    }
+                });
+            }
+            currentPage = 0;
+            displayErrors();
+        }
+
+        function displayErrors() {
+            const errorListContainer = document.getElementById('errorListContainer');
+            
+            if (filteredErrors.length === 0) {
+                errorListContainer.style.display = 'none';
+                return;
+            }
+
+            errorListContainer.style.display = 'block';
+            const startIndex = currentPage * errorsPerPage;
+            const endIndex = startIndex + errorsPerPage;
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = '';
+
+            for (let i = startIndex; i < endIndex && i < filteredErrors.length; i++) {
+                const error = filteredErrors[i];
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-item';
+                errorDiv.innerHTML = `<strong>${error.timestamp}</strong> - ${error.model}: ${error.error}`;
+                errorContainer.appendChild(errorDiv);
+            }
+
+            document.getElementById('pageInfo').textContent = `Page ${currentPage + 1} of ${Math.ceil(filteredErrors.length / errorsPerPage)}`;
+            document.getElementById('prevPage').disabled = currentPage === 0;
+            document.getElementById('nextPage').disabled = endIndex >= filteredErrors.length;
+        }
+
+        document.querySelectorAll('.model-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const api_name = card.dataset.api;
+                openModal(api_name);
+            });
+        });
+
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 0) {
+                currentPage--;
+                displayErrors();
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if ((currentPage + 1) * errorsPerPage < errors.length) {
+                currentPage++;
+                displayErrors();
+            }
+        });
+
+        // Initial display
+        displayErrors();
+
+        // Function to open the modal
+        function openModal(api_name) {
+            const modal = document.getElementById('modelModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+
+            modalTitle.textContent = `Calls to ${api_name}`;
+            modalContent.innerHTML = '<p>Loading...</p>';
+
+            modal.style.display = 'block';
+
+            // Fetch the data for this specific API
+            fetch(`/model_data/${api_name}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Sort data by timestamp in descending order
+                    data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                    let content = '<h3>Recent Calls (Last 25)</h3>';
+                    content += '<table><thead><tr><th>Timestamp</th><th>Status</th><th>Response Time</th></tr></thead><tbody>';
+                    
+                    // Limit to 25 results
+                    const recentCalls = data.slice(0, 25);
+                    
+                    recentCalls.forEach(call => {
+                        const statusClass = call.status === 'Success' ? 'status-success' : 'status-error';
+                        content += `
+                            <tr>
+                                <td>${call.timestamp}</td>
+                                <td class="${statusClass}">${call.status}</td>
+                                <td>${call.response_time}s</td>
+                            </tr>
+                        `;
+                    });
+                    content += '</tbody></table>';
+
+                    // Add error table
+                    const errors = data.filter(call => call.status !== 'Success');
+                    if (errors.length > 0) {
+                        content += '<h3>Errors</h3>';
+                        content += '<table><thead><tr><th>Timestamp</th><th>Error Message</th></tr></thead><tbody>';
+                        errors.forEach(error => {
+                            content += `
+                                <tr>
+                                    <td>${error.timestamp}</td>
+                                    <td>${error.error || 'N/A'}</td>
+                                </tr>
+                            `;
+                        });
+                        content += '</tbody></table>';
+                    } else {
+                        content += '<h3>No Errors</h3>';
+                    }
+
+                    modalContent.innerHTML = content;
+                })
+                .catch(error => {
+                    modalContent.innerHTML = '<p>Error loading data</p>';
+                    console.error('Error:', error);
+                });
+        }
+
+        // Function to close the modal
+        function closeModal() {
+            const modal = document.getElementById('modelModal');
+            modal.style.display = 'none';
+        }
+
+        // Event listener for closing the modal
+        document.querySelector('.close').addEventListener('click', closeModal);
+
+        // Close the modal if clicking outside of it
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('modelModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Update overall status
+        function updateOverallStatus(data) {
+            document.getElementById('overallUptime').textContent = data.uptime + '%';
+            document.getElementById('overallResponseTime').textContent = data.avg_response_time + 's';
+            document.getElementById('overallErrorRate').textContent = data.error_rate + '%';
+
+            const alertElement = document.getElementById('overallAlert');
+            if (data.uptime < 90 || data.avg_response_time > 40) {
+                alertElement.style.display = 'block';
+                alertElement.textContent = 'Alert: System performance is below optimal levels.';
+            } else {
+                alertElement.style.display = 'none';
+            }
+        }
+
+        // Call this function when the page loads
+        updateOverallStatus({{ overall_status|tojson }});
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+
+CTI_Website:
+  method: GET
+  endpoint: "https://www.climatechinnovations.com/"
+  timeout: 60
+
+CTI_Hub:
+  method: GET
+  endpoint: "https://ctihub-production.up.railway.app/"
+  timeout: 60
+
+Tree_Tracking:
+  method: GET
+  endpoint: "https://treetrackingsite-production.up.railway.app/"
+  timeout: 60
+
+Knowledge_Hub:
+  method: GET
+  endpoint: "https://knowledgebase-production-af07.up.railway.app/"
+  timeout: 60
